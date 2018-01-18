@@ -1,13 +1,13 @@
-var staticCacheName = 'wittr-static-v3';
+var staticCacheName = 'wittr-static-8fe4b8f';
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(staticCacheName).then(function(cache) {
       return cache.addAll([
         '/',
-        'js/main.js',
-        'css/main.css',
-        'imgs/icon.png',
+        'js/main_0fe4b8f.js',
+        'css/main_1gz4b5k.css',
+        'imgs/icon_7wq4b8f.png',
         'https://fonts.gstatic.com/s/roboto/v15/2UX7WLTfW3W8TclTUvlFyQ.woff',
         'https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOD8E0i7KZn-EPnyo3HZu7kw.woff'
       ]);
