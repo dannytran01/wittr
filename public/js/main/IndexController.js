@@ -8,7 +8,65 @@ export default function IndexController(container) {
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
   this._openSocket();
+  this._registerServiceWorker();
 }
+
+IndexController.prototype._registerServiceWorker = function() {
+  if (!navigator.serviceWorker) return;
+
+  var indexController = this;
+
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    // TODO: if there's no controller, this page wasn't loaded
+    // via a service worker, so they're looking at the latest version.
+    // In that case, exit early
+    if(!navigator.serviceWorker.controller){
+      return;
+    }
+
+    // TODO: if there's an updated worker already waiting, call
+    if(reg.waiting){
+        console.log("Sw is waiting");
+        indexController._updateReady();
+    }
+
+
+    // TODO: if there's an updated worker installing, track its
+    // progress. If it becomes "installed", call
+    if(reg.installing){
+        console.log("sw is installing");
+        var sw = reg.installing;
+        sw.addEventListener('statechange', () => {
+            if(sw.state == 'installed'){
+                console.log("Service worker is installed from sw installing");
+                indexController._updateReady();
+            }
+        });
+        return;
+    }
+
+      // TODO: otherwise, listen for new installing workers arriving.
+      // If one arrives, track its progress.
+      // If it becomes "installed", call
+      reg.addEventListener('updatefound', () => {
+        console.log("Update found!!!!");
+          var sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+              if(sw.state == 'installed'){
+                  console.log("Service worker is installed from sw arriving");
+                  indexController._updateReady();
+              }
+          });
+      });
+
+  });
+};
+
+IndexController.prototype._updateReady = function() {
+  var toast = this._toastsView.show("New version available", {
+    buttons: ['whatever']
+  });
+};
 
 // open a connection to the server for live updates
 IndexController.prototype._openSocket = function() {
