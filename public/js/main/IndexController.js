@@ -20,18 +20,45 @@ IndexController.prototype._registerServiceWorker = function() {
     // TODO: if there's no controller, this page wasn't loaded
     // via a service worker, so they're looking at the latest version.
     // In that case, exit early
+    if(!navigator.serviceWorker.controller){
+      return;
+    }
 
     // TODO: if there's an updated worker already waiting, call
-    // indexController._updateReady()
+    if(reg.waiting){
+        console.log("Sw is waiting");
+        indexController._updateReady();
+    }
+
 
     // TODO: if there's an updated worker installing, track its
     // progress. If it becomes "installed", call
-    // indexController._updateReady()
+    if(reg.installing){
+        console.log("sw is installing");
+        var sw = reg.installing;
+        sw.addEventListener('statechange', () => {
+            if(sw.state == 'installed'){
+                console.log("Service worker is installed from sw installing");
+                indexController._updateReady();
+            }
+        });
+        return;
+    }
 
-    // TODO: otherwise, listen for new installing workers arriving.
-    // If one arrives, track its progress.
-    // If it becomes "installed", call
-    // indexController._updateReady()
+      // TODO: otherwise, listen for new installing workers arriving.
+      // If one arrives, track its progress.
+      // If it becomes "installed", call
+      reg.addEventListener('updatefound', () => {
+        console.log("Update found!!!!");
+          var sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+              if(sw.state == 'installed'){
+                  console.log("Service worker is installed from sw arriving");
+                  indexController._updateReady();
+              }
+          });
+      });
+
   });
 };
 
