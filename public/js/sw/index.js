@@ -1,4 +1,5 @@
-var staticCacheName = 'wittr-static-v2';
+var staticCacheName = 'wittr-static-v3';
+
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
@@ -38,5 +39,14 @@ self.addEventListener('fetch', function(event) {
   );
 });
 
-// TODO: listen for the "message" event, and call
+// TODO: 2nd, sw listen for the "message" event, and call
 // skipWaiting if you get the appropriate message
+
+self.addEventListener('message', event => {
+
+    console.log("Listening to message: " + event.data.message);
+   if(event.data.message == 'skipWaiting'){
+       console.log("Message is skip waiting!");
+       self.skipWaiting();
+   }
+});

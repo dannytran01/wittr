@@ -36,8 +36,12 @@ IndexController.prototype._registerServiceWorker = function() {
     });
   });
 
-  // TODO: listen for the controlling service worker changing
+  // TODO: 3rd- the page listen for the controlling service worker changing
   // and reload the page
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+       console.log("Calling reload!");
+       location.reload();
+  });
 };
 
 IndexController.prototype._trackInstalling = function(worker) {
@@ -56,7 +60,10 @@ IndexController.prototype._updateReady = function(worker) {
 
   toast.answer.then(function(answer) {
     if (answer != 'refresh') return;
-    // TODO: tell the service worker to skipWaiting
+    // TODO: 1st the page need to tell the service worker to skipWaiting
+      console.log("Sending message!");
+      console.log("Is worker defined? " + worker);
+      worker.postMessage({message: "skipWaiting"});
   });
 };
 
