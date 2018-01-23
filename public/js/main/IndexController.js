@@ -2,13 +2,91 @@ import PostsView from './views/Posts';
 import ToastsView from './views/Toasts';
 import idb from 'idb';
 
+function openDatabase() {
+  // If the browser doesn't support service worker,
+  // we don't care about having a database
+  if (!navigator.serviceWorker) {
+    return Promise.resolve();
+  }
+
+  // TODO: return a promise for a database called 'wittr'
+  // that contains one objectStore: 'wittrs'
+  // that uses 'id' as its key
+  // and has an index called 'by-date', which is sorted
+  // by the 'time' property
+  return idb.open('wittr', 1, upgradeDb => {
+    switch(upgradeDb.oldVersion){
+        case 0:
+          var wittrStore = upgradeDb.createObjectStore('wittrs', {keyPath: 'id'});
+          wittrStore.createIndex('by-date', 'time');
+    }
+  });
+}
+
 export default function IndexController(container) {
   this._container = container;
   this._postsView = new PostsView(this._container);
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
   this._openSocket();
+  this._dbPromise = openDatabase();
+  this._registerServiceWorker();
 }
+
+IndexController.prototype._registerServiceWorker = function() {
+  if (!navigator.serviceWorker) return;
+
+  var indexController = this;
+
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    if (!navigator.serviceWorker.controller) {
+      return;
+    }
+
+    if (reg.waiting) {
+      indexController._updateReady(reg.waiting);
+      return;
+    }
+
+    if (reg.installing) {
+      indexController._trackInstalling(reg.installing);
+      return;
+    }
+
+    reg.addEventListener('updatefound', function() {
+      indexController._trackInstalling(reg.installing);
+    });
+  });
+
+  // Ensure refresh is only called once.
+  // This works around a bug in "force update on reload".
+  var refreshing;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (refreshing) return;
+    window.location.reload();
+    refreshing = true;
+  });
+};
+
+IndexController.prototype._trackInstalling = function(worker) {
+  var indexController = this;
+  worker.addEventListener('statechange', function() {
+    if (worker.state == 'installed') {
+      indexController._updateReady(worker);
+    }
+  });
+};
+
+IndexController.prototype._updateReady = function(worker) {
+  var toast = this._toastsView.show("New version available", {
+    buttons: ['refresh', 'dismiss']
+  });
+
+  toast.answer.then(function(answer) {
+    if (answer != 'refresh') return;
+    worker.postMessage({action: 'skipWaiting'});
+  });
+};
 
 // open a connection to the server for live updates
 IndexController.prototype._openSocket = function() {
@@ -58,5 +136,21 @@ IndexController.prototype._openSocket = function() {
 // called when the web socket sends message data
 IndexController.prototype._onSocketMessage = function(data) {
   var messages = JSON.parse(data);
+
+  this._dbPromise.then(function(db) {
+    if (!db) return;
+
+    // TODO: put each message into the 'wittrs'
+    // object store.
+
+    var tx = db.transaction('wittrs', 'readwrite');
+    var wittrStore = tx.objectStore('wittrs');
+
+    messages.forEach(message => {
+      wittrStore.put(message);
+    })
+    return tx.complete;
+  });
+
   this._postsView.addPosts(messages);
 };
