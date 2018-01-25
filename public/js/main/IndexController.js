@@ -159,6 +159,28 @@ IndexController.prototype._cleanImageCache = function() {
   return this._dbPromise.then(function(db) {
     if (!db) return;
 
+    var tx = db.transaction('wittrs', 'readwrite');
+    var store = tx.objectStore('wittrs');
+
+    store.getAll().then(messages => {
+      var photoUrls = [];
+      messages.forEach(message => {
+          if(message.photo){
+              photoUrls.push(message.photo);
+          }
+      });
+
+      caches.open('wittr-content-imgs').then(cache => {
+        return cache.keys().then(keys => {
+          keys.forEach(key => {
+              let url = new URL(key.url);
+              if(!photoUrls.includes(url.pathname)){
+                  cache.delete(key);
+              }
+          });
+        });
+      });
+    });
     // TODO: open the 'wittr' object store, get all the messages,
     // gather all the photo urls.
     //
