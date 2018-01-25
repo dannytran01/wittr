@@ -163,12 +163,20 @@ IndexController.prototype._onSocketMessage = function(data) {
       store.put(message);
     });
 
+    return store.openCursor(null, 'prev');
     // TODO: keep the newest 30 entries in 'wittrs',
     // but delete the rest.
     //
     // Hint: you can use .openCursor(null, 'prev') to
     // open a cursor that goes through an index/store
     // backwards.
+  }).then(function(cursor) {
+    if(!cursor) return;
+    return cursor.advance(30);
+  }).then(function deleteItems(cursor){
+    if(!cursor) return;
+    cursor.delete();
+    return cursor.continue().then(deleteItems);
   });
 
   this._postsView.addPosts(messages);
